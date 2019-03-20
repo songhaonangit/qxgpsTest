@@ -80,11 +80,22 @@ public class MainActivity extends AppCompatActivity {
         init();
     }
 
+    @Override
+    protected void onStop() {
+
+        super.onStop();
+        /***
+         * 防止后台空跑
+         */
+        qxGPSManager.closeGps();
+        finish();
+    }
+
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        qxGPSManager.closeGps();
+       // qxGPSManager.closeGps();
     }
 
 
