@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         //监听 打卡的按键
         if (keyCode == 444) {
             Log.i(TAG, "---onKeyDown--keycode-------" + keyCode);
-            Toast.makeText(getApplicationContext(),"打卡成功",Toast.LENGTH_SHORT).show();
+
 
             return true;
         }
