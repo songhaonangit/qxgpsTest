@@ -20,6 +20,8 @@ import com.getcharmsmart.localsocket.GGAData;
 import com.getcharmsmart.localsocket.OnGpsDataListener;
 import com.getcharmsmart.localsocket.QxGPSManager;
 
+import net.sf.marineapi.nmea.sentence.GGASentence;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -124,10 +126,10 @@ public class MainAcitvity extends AppCompatActivity {
             }
 
             @Override
-            public void onDataGgaReceoved(GGAData ggaData) {
-                final  String  Lng = Double.toString(ggaData.getLongitude());
-                final  String  Lat = Double.toString(ggaData.getLatitude());
-                final  String  fix = ggaData.getFixQuality();
+            public void onDataGgaReceoved(GGASentence ggaData) {
+                final  String  Lng = Double.toString(ggaData.getPosition().getLongitude());
+                final  String  Lat = Double.toString(ggaData.getPosition().getLatitude());
+                final  String  fix = ggaData.getFixQuality().toString();
 
                 runOnUiThread(new Runnable() {
                     @Override
