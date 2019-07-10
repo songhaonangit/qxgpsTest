@@ -5,101 +5,76 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.getcharmsmart.qxgps.OnGpsDataListener;
-import com.getcharmsmart.qxgps.QxGPSManager;
+import com.getcharmsmart.localsocket.GGAData;
+import com.getcharmsmart.localsocket.OnGpsDataListener;
+import com.getcharmsmart.localsocket.QxGPSManager;
 
-public class MainActivity extends AppCompatActivity {
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-    public static final String TAG = "MainActivity";
-    TextView result;
+/**
+ * Created by root on 19-3-27.
+ */
+
+public class MainAcitvity extends AppCompatActivity {
+
+    public static final String TAG = "MainAcitvity";
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             "android.permission.READ_EXTERNAL_STORAGE",
-            "android.permission.WRITE_EXTERNAL_STORAGE" };
+            "android.permission.WRITE_EXTERNAL_STORAGE"};
+    TextView tv_result,tv_time,tv_postion,tv_type;
     QxGPSManager qxGPSManager;
+    final   SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        result =  (TextView)findViewById(R.id.tv_result);
-        init();
-        qxGPSManager = new QxGPSManager();
-
-        boolean status = qxGPSManager.setmOnGpsDataListener(new OnGpsDataListener() {
-            @Override
-            public void onDataReceived(String str) {
-                Log.d(TAG,"------qxGPSManager--onDataReceived-"+str);
-
-                if(!TextUtils.isEmpty(str)){
-                    final String data = str;
-                    //result.setText("GGA打卡成功\n"+ str);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // result.setText(data+"\n"+result.getText());
-
-                            result.setText(data+"\n");
-                        }
-                    });
-
-
-
-                }
-
-            }
-
-        }).openGps(2);
-
-        Log.d(TAG,"------qxGPSManager--open-status-"+status);
+        tv_time = findViewById(R.id.tv_time);
+        tv_result =  findViewById(R.id.tv_result);
+        tv_postion =  findViewById(R.id.tv_postion);
+        tv_type =  findViewById(R.id.tv_gps_type);
     }
-
-
     @Override
     protected void onResume() {
         super.onResume();
-        /**
-         * 设置为竖屏
-         */
-        if(getRequestedOrientation()!= ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        }
+
         init();
     }
 
     @Override
-    protected void onStop() {
+    protected void onPause() {
+        super.onPause();
 
-        super.onStop();
-        /***
-         * 防止后台空跑
+        /**
+         * 停止使用sdk
          */
-        qxGPSManager.closeGps();
-        finish();
+
+        if(qxGPSManager!=null){
+            qxGPSManager.closeGps();
+        }
+
     }
 
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-       // qxGPSManager.closeGps();
-    }
+    public void init(){
+
+        tv_postion.setText("");
+        tv_type.setText("");
 
 
-    private void init() {
         /**
          *检查网络状态
          */
@@ -110,6 +85,14 @@ public class MainActivity extends AppCompatActivity {
 
             if(NetWorkUtils.netCanUse(this)){
                 Toast.makeText(this, "网络已连接可用...", Toast.LENGTH_SHORT).show();
+
+                /**
+                 * 网络正常时启用SDK
+                 */
+
+                initSdk();
+
+
             }else {
                 Toast.makeText(this, "当前网络不可用，请尝试更换网络连接方式，或者换个地方尝试使用...", Toast.LENGTH_SHORT).show();
             }
@@ -119,11 +102,65 @@ public class MainActivity extends AppCompatActivity {
 
         //检查权限
         verifyStoragePermissions(this);
+
     }
 
-    /*
-    * 打开设置网络界面
-    */
+    /**
+     * 初始化启用SDK
+     */
+    public void initSdk(){
+
+        qxGPSManager = new QxGPSManager();
+        boolean status;
+        status = qxGPSManager.setOnGpsDataListener(new OnGpsDataListener() {
+            @Override
+            public void onDataReceived(String str) {
+
+            }
+
+            @Override
+            public void onDataByteReceived(byte[] str) {
+                setdata(str);
+            }
+
+            @Override
+            public void onDataGgaReceoved(GGAData ggaData) {
+                final  String  Lng = Double.toString(ggaData.getLongitude());
+                final  String  Lat = Double.toString(ggaData.getLatitude());
+                final  String  fix = ggaData.getFixQuality();
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        tv_postion.setText(Lng+","+Lat);
+                        tv_type.setText(fix);
+                    }
+                });
+            }
+        }).openGps();
+
+
+        Log.d(TAG,"------qxGPSManager--open-status-"+status);
+    }
+
+    /**
+     * 显示时间和NMEA数据
+     */
+
+    public void setdata(byte[] str) {
+        String rev = "";
+        rev =new String(str).trim();
+        // new Date()为获取当前系统时间，也可使用当前时间戳
+        String date = df.format(new Date());
+        tv_time.setText(date);
+        tv_result.setText(rev);
+
+    }
+
+
+    /**
+     * 打开设置网络界面
+     */
     public void showSetNetworkUI(final Context context) {
         // 提示对话框
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -170,18 +207,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        //监听 打卡的按键
-        if (keyCode == 444) {
-            Log.i(TAG, "---onKeyDown--keycode-------" + keyCode);
-
-
-            return true;
-        }
-        return false;
     }
 
 }
